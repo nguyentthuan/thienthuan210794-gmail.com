@@ -16,16 +16,37 @@ class Form extends React.Component {
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
+  componentWillReceiveProps(nextProps) {
+    if(nextProps.projectToEdit) {
+      this.setState({
+        nameProject: nextProps.projectToEdit.nameProject,
+        description: nextProps.projectToEdit.description,
+        members: nextProps.projectToEdit.members,
+      });
+    }
+  }
+
   handleSubmit(){
-    const { onSubmit } = this.props;
+    const { onSubmit, projectToEdit, onEdit } = this.props;
     const { nameProject, description, members } = this.state;
 
-    return axios.post('http://localhost:3000/api/projects', {
-      nameProject,
-       description,
-        members
-    })
-      .then((res) => onSubmit(res.data));
+    if(!projectToEdit) {
+      return axios.post('http://localhost:3000/api/projects', {
+        nameProject,
+        description,
+        members,
+      })
+        .then((res) => onSubmit(res.data))
+        .then(() => this.setState({ nameProject: '', description: '', members: '' }));
+    } else {
+      return axios.patch(`http://localhost:3000/api/projects/${projectToEdit._id}`, {
+        nameProject,
+        description,
+        members,
+      })
+        .then((res) => onEdit(res.data))
+        .then(() => this.setState({ nameProject: '', description: '', members: '' }));
+    }
   }
 
   handleChangeField(key, event) {
@@ -35,6 +56,7 @@ class Form extends React.Component {
   }
 
   render() {
+    const { projectToEdit } = this.props;
     const { nameProject, description, members } = this.state;
 
     return (
@@ -57,7 +79,7 @@ class Form extends React.Component {
           className="form-control my-3"
           placeholder="Members"
         />
-        <button onClick={this.handleSubmit} className="btn btn-primary float-right">Submit</button>
+        <button onClick={this.handleSubmit} className="btn btn-primary float-right">{projectToEdit ? 'Update' : 'Submit'}</button>
       </div>
     )
   }
@@ -65,6 +87,11 @@ class Form extends React.Component {
 
 const mapDispatchToProps = dispatch => ({
   onSubmit: data => dispatch({ type: 'SUBMIT_PROJECT', data }),
+  onEdit: data => dispatch({ type: 'SUBMIT_PROJECT', data }),
 });
 
-export default connect(null, mapDispatchToProps)(Form);
+const mapStateToProps = state => ({
+  projectToEdit: state.home.projectToEdit,
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Form);
